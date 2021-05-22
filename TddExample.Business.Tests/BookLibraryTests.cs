@@ -12,10 +12,11 @@ namespace TddExample.Business.Tests
         {
         }
 
-        [Test]
-        public void TestCheckoutBookAsync_GivenMemberOverBookLimit_ThrowsTooManyCheckedOutBooksException()
+        [TestCase("memberId1", BookLibrary.MaxOutstandingLoans)]
+        [TestCase("memberId2", BookLibrary.MaxOutstandingLoans)]
+        public void TestCheckoutBookAsync_GivenMemberOverBookLimit_ThrowsTooManyCheckedOutBooksException(
+            string memberId, int outstandingBookLoans)
         {
-            const string memberId = "test-member-id";
             const string isbnOfBookToCheckOut = "test-isbn";
 
             var bookLoanRepository = Substitute.For<IBookLoanRepository>();
@@ -24,7 +25,7 @@ namespace TddExample.Business.Tests
 
             // Stub GetOutstandingBookLoansForMember to return exactly
             // the maximum number of outstanding BookLoans
-            for (var i = 0; i < BookLibrary.MaxOutstandingLoans; i++)
+            for (var i = 0; i < outstandingBookLoans; i++)
             {
                 stubOutstandingLoans.Add(
                     new BookLoan
@@ -46,10 +47,11 @@ namespace TddExample.Business.Tests
                 await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut));
         }
 
-        [Test]
-        public void TestCheckoutBookAsync_GivenMemberNotOverBookLimit_Succeeds()
+        [TestCase("member1", BookLibrary.MaxOutstandingLoans - 1)]
+        [TestCase("member2", BookLibrary.MaxOutstandingLoans - 2)]
+        public void TestCheckoutBookAsync_GivenMemberNotOverBookLimit_Succeeds(
+            string memberId, int outstandingBookLoans)
         {
-            const string memberId = "test-member-id";
             const string isbnOfBookToCheckOut = "test-isbn";
 
             var bookLoanRepository = Substitute.For<IBookLoanRepository>();
@@ -59,7 +61,7 @@ namespace TddExample.Business.Tests
             // Stub GetOutstandingBookLoansForMember to return one less
             // that the maximum number of outstanding loans so this checkout
             // should be allowed
-            for (var i = 0; i < BookLibrary.MaxOutstandingLoans - 1; i++)
+            for (var i = 0; i < outstandingBookLoans; i++)
             {
                 stubOutstandingLoans.Add(
                     new BookLoan
