@@ -16,7 +16,7 @@ namespace TddExample.Business
         public async Task CheckoutBookAsync(string memberId, string isbn)
         {
             var numberOfOutstandingLoans =
-                (await _bookLoanRepository.GetOutstandingBookLoansForMemberAsync("test-member-id"))
+                (await _bookLoanRepository.GetOutstandingBookLoansForMemberAsync(memberId))
                 .Count();
 
             if ((numberOfOutstandingLoans + 1) > MaxOutstandingLoans)
