@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using NSubstitute;
 using NUnit.Framework;
 
@@ -14,18 +16,34 @@ namespace TddExample.Business.Tests
         public void TestCheckoutBookAsync_GivenMemberOverBookLimit_ThrowsTooManyCheckedOutBooksException()
         {
             const string memberId = "test-member-id";
-            const string isbn = "test-isbn";
+            const string isbnOfBookToCheckOut = "test-isbn";
 
             var bookLoanRepository = Substitute.For<IBookLoanRepository>();
+
+            var stubOutstandingLoans = new List<BookLoan>();
+
+            // Stub GetOutstandingBookLoansForMember to return exactly
+            // the maximum number of outstanding BookLoans
+            for (var i = 0; i < BookLibrary.MaxOutstandingLoans; i++)
+            {
+                stubOutstandingLoans.Add(
+                    new BookLoan
+                    {
+                        Id = $"test-book-loan-id-{i}",
+                        MemberId = memberId,
+                        Isbn = $"isbn-{i}",
+                        CopyId = $"copy-id-for-book-{i}",
+                        DueDate = new DateTime(2021, 1, 1, 0, 0, 0),
+                        WasReturned = false
+                    });
+            }
+            bookLoanRepository.GetOutstandingBookLoansForMemberAsync(memberId)
+                .Returns(stubOutstandingLoans);
+
             var bookLibrary = new BookLibrary(bookLoanRepository);
 
-            // TODO: This test doesn't actually do what it says yet because it
-            // doesn't actually set up the situation where the member is over
-            // the book limit.   However, this is still a good time to try to
-            // run it and get the classes built and compiling.
-
             Assert.ThrowsAsync<TooManyCheckedOutBooksException>(async () =>
-                await bookLibrary.CheckoutBookAsync(memberId, isbn));
+                await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut));
         }
     }
 }
