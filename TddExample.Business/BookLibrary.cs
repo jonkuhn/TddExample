@@ -29,6 +29,12 @@ namespace TddExample.Business
             {
                 throw new PastDueBooksException();
             }
+
+            var availableCopies = await _bookLoanRepository.GetAvailableCopyIdsAsync(isbn);
+            if (!availableCopies.Any())
+            {
+                throw new NoCopiesAvailableException();
+            }
         }
     }
 }
