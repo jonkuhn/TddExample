@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace TddExample.Business
@@ -15,13 +16,18 @@ namespace TddExample.Business
         }
         public async Task CheckoutBookAsync(string memberId, string isbn)
         {
-            var numberOfOutstandingLoans =
+            var outstandingBookLoans =
                 (await _bookLoanRepository.GetOutstandingBookLoansForMemberAsync(memberId))
-                .Count();
+                .ToList();
 
-            if ((numberOfOutstandingLoans + 1) > MaxOutstandingLoans)
+            if ((outstandingBookLoans.Count + 1) > MaxOutstandingLoans)
             {
                 throw new TooManyCheckedOutBooksException();
+            }
+
+            if (outstandingBookLoans.Any(x => x.DueDate <= DateTime.UtcNow))
+            {
+                throw new PastDueBooksException();
             }
         }
     }
