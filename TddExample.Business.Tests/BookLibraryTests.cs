@@ -141,7 +141,6 @@ namespace TddExample.Business.Tests
                 bookLoans.Add(
                     new BookLoan
                     {
-                        Id = $"test-book-loan-id-{i}",
                         MemberId = memberId,
                         Isbn = $"isbn-{i}",
                         CopyId = $"copy-id-for-book-{i}",

@@ -2,18 +2,16 @@ using System;
 
 namespace TddExample.Business
 {
-    public class BookLoan
+    public record BookLoan
     {
-        public string Id { get; set; }
+        public string MemberId { get; init; }
 
-        public string MemberId { get; set; }
+        public string Isbn { get; init; }
 
-        public string Isbn { get; set; }
+        public string CopyId { get; init; }
 
-        public string CopyId { get; set; }
+        public DateTime DueDate { get; init; }
 
-        public DateTime DueDate { get; set; }
-
-        public bool WasReturned { get; set; }
+        public bool WasReturned { get; init; }
     }
 }
