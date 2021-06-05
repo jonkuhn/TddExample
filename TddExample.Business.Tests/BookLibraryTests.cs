@@ -46,6 +46,8 @@ namespace TddExample.Business.Tests
                 bookLoanRepository,
                 memberId,
                 CreateOutstandingBookLoans(memberId, outstandingBookLoanCount, futureDueDate));
+            bookLoanRepository.GetAvailableCopyIdsAsync(Arg.Any<string>())
+                .Returns(new[] { "available-copy-id" });
 
             var bookLibrary = new BookLibrary(bookLoanRepository);
 
