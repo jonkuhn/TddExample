@@ -15,31 +15,12 @@ namespace TddExample.Business.Tests
         [TestCase("memberId1", BookLibrary.MaxOutstandingLoans)]
         [TestCase("memberId2", BookLibrary.MaxOutstandingLoans)]
         public void TestCheckoutBookAsync_GivenMemberOverBookLimit_ThrowsTooManyCheckedOutBooksException(
-            string memberId, int outstandingBookLoans)
+            string memberId, int outstandingBookLoanCount)
         {
             const string isbnOfBookToCheckOut = "test-isbn";
 
             var bookLoanRepository = Substitute.For<IBookLoanRepository>();
-
-            var stubOutstandingLoans = new List<BookLoan>();
-
-            // Stub GetOutstandingBookLoansForMember to return exactly
-            // the maximum number of outstanding BookLoans
-            for (var i = 0; i < outstandingBookLoans; i++)
-            {
-                stubOutstandingLoans.Add(
-                    new BookLoan
-                    {
-                        Id = $"test-book-loan-id-{i}",
-                        MemberId = memberId,
-                        Isbn = $"isbn-{i}",
-                        CopyId = $"copy-id-for-book-{i}",
-                        DueDate = new DateTime(2021, 1, 1, 0, 0, 0),
-                        WasReturned = false
-                    });
-            }
-            bookLoanRepository.GetOutstandingBookLoansForMemberAsync(memberId)
-                .Returns(stubOutstandingLoans);
+            SetupOutstandingBookLoansForMember(bookLoanRepository, memberId, outstandingBookLoanCount);
 
             var bookLibrary = new BookLibrary(bookLoanRepository);
 
@@ -50,18 +31,27 @@ namespace TddExample.Business.Tests
         [TestCase("member1", BookLibrary.MaxOutstandingLoans - 1)]
         [TestCase("member2", BookLibrary.MaxOutstandingLoans - 2)]
         public void TestCheckoutBookAsync_GivenMemberNotOverBookLimit_Succeeds(
-            string memberId, int outstandingBookLoans)
+            string memberId, int outstandingBookLoanCount)
         {
             const string isbnOfBookToCheckOut = "test-isbn";
-
             var bookLoanRepository = Substitute.For<IBookLoanRepository>();
+            SetupOutstandingBookLoansForMember(bookLoanRepository, memberId, outstandingBookLoanCount);
 
+            var bookLibrary = new BookLibrary(bookLoanRepository);
+
+            Assert.DoesNotThrowAsync(async () =>
+                await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut));
+        }
+
+        private static void SetupOutstandingBookLoansForMember(
+            IBookLoanRepository mockBookLoanRepository,
+            string memberId,
+            int count)
+        {
+            // Stub GetOutstandingBookLoansForMember to return a given
+            // number of outstanding book loans for the given member
             var stubOutstandingLoans = new List<BookLoan>();
-
-            // Stub GetOutstandingBookLoansForMember to return one less
-            // that the maximum number of outstanding loans so this checkout
-            // should be allowed
-            for (var i = 0; i < outstandingBookLoans; i++)
+            for (var i = 0; i < count; i++)
             {
                 stubOutstandingLoans.Add(
                     new BookLoan
@@ -74,13 +64,8 @@ namespace TddExample.Business.Tests
                         WasReturned = false
                     });
             }
-            bookLoanRepository.GetOutstandingBookLoansForMemberAsync(memberId)
+            mockBookLoanRepository.GetOutstandingBookLoansForMemberAsync(memberId)
                 .Returns(stubOutstandingLoans);
-
-            var bookLibrary = new BookLibrary(bookLoanRepository);
-
-            Assert.DoesNotThrowAsync(async () =>
-                await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut));
         }
     }
 }
