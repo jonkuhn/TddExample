@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using NSubstitute;
 using NUnit.Framework;
 
@@ -90,6 +91,31 @@ namespace TddExample.Business.Tests
 
             Assert.ThrowsAsync<NoCopiesAvailableException>(async () =>
                 await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut));
+        }
+
+        [Test]
+        public async Task TestCheckoutBookAsync_GivenCopyAvailable_CallsTryCreateBookLoanWithCorrectArgs()
+        {
+            const string memberId = "member-1";
+            const string availableCopyId = "available-copy-id";
+            const string isbnOfBookToCheckOut = "test-isbn";
+
+            var bookLoanRepository = Substitute.For<IBookLoanRepository>();
+            bookLoanRepository.GetAvailableCopyIdsAsync(Arg.Any<string>())
+                .Returns(new[] { availableCopyId });
+
+            var bookLibrary = new BookLibrary(bookLoanRepository);
+            await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut);
+
+            var expectedNewBookLoan = new BookLoan
+            {
+                MemberId = memberId,
+                Isbn = isbnOfBookToCheckOut,
+                CopyId = availableCopyId,
+                DueDate = DateTime.UtcNow.Date + BookLibrary.LoanDuration,
+                WasReturned = false
+            };
+            await bookLoanRepository.Received(1).TryCreateBookLoanAsync(expectedNewBookLoan);
         }
 
         private static void SetupOutstandingBookLoansForMember(
