@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using NSubstitute;
 using NUnit.Framework;
 
@@ -18,9 +19,13 @@ namespace TddExample.Business.Tests
             string memberId, int outstandingBookLoanCount)
         {
             const string isbnOfBookToCheckOut = "test-isbn";
+            var futureDueDate = DateTime.UtcNow + TimeSpan.FromDays(1);
 
             var bookLoanRepository = Substitute.For<IBookLoanRepository>();
-            SetupOutstandingBookLoansForMember(bookLoanRepository, memberId, outstandingBookLoanCount);
+            SetupOutstandingBookLoansForMember(
+                bookLoanRepository,
+                memberId,
+                CreateOutstandingBookLoans(memberId, outstandingBookLoanCount, futureDueDate));
 
             var bookLibrary = new BookLibrary(bookLoanRepository);
 
@@ -34,8 +39,13 @@ namespace TddExample.Business.Tests
             string memberId, int outstandingBookLoanCount)
         {
             const string isbnOfBookToCheckOut = "test-isbn";
+            var futureDueDate = DateTime.UtcNow + TimeSpan.FromDays(1);
+
             var bookLoanRepository = Substitute.For<IBookLoanRepository>();
-            SetupOutstandingBookLoansForMember(bookLoanRepository, memberId, outstandingBookLoanCount);
+            SetupOutstandingBookLoansForMember(
+                bookLoanRepository,
+                memberId,
+                CreateOutstandingBookLoans(memberId, outstandingBookLoanCount, futureDueDate));
 
             var bookLibrary = new BookLibrary(bookLoanRepository);
 
@@ -43,29 +53,60 @@ namespace TddExample.Business.Tests
                 await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut));
         }
 
+        [Test]
+        public void TestCheckoutBookAsync_GivenPastDueBookLoan_ThrowsBooksPastDueException()
+        {
+            const string memberId = "member-1";
+            const string isbnOfBookToCheckOut = "test-isbn";
+            var pastDueDate = DateTime.UtcNow - TimeSpan.FromDays(1);
+            var futureDueDate = DateTime.UtcNow + TimeSpan.FromDays(1);
+
+            var bookLoanRepository = Substitute.For<IBookLoanRepository>();
+            SetupOutstandingBookLoansForMember(
+                bookLoanRepository,
+                memberId,
+                CreateOutstandingBookLoans(memberId, 4, futureDueDate)
+                .Concat(CreateOutstandingBookLoans(memberId, 1, pastDueDate)));
+
+            var bookLibrary = new BookLibrary(bookLoanRepository);
+
+            Assert.ThrowsAsync<PastDueBooksException>(async () =>
+                await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut));
+        }
+
         private static void SetupOutstandingBookLoansForMember(
             IBookLoanRepository mockBookLoanRepository,
             string memberId,
-            int count)
+            IEnumerable<BookLoan> outstandingBookLoans)
         {
-            // Stub GetOutstandingBookLoansForMember to return a given
-            // number of outstanding book loans for the given member
+            // Stub GetOutstandingBookLoansForMember to return the given
+            // list of book loans for the given member
             var stubOutstandingLoans = new List<BookLoan>();
+            mockBookLoanRepository.GetOutstandingBookLoansForMemberAsync(memberId)
+                .Returns(outstandingBookLoans);
+        }
+
+        private static IEnumerable<BookLoan> CreateOutstandingBookLoans(
+            string memberId,
+            int count,
+            DateTime dueDate)
+        {
+            var bookLoans = new List<BookLoan>();
             for (var i = 0; i < count; i++)
             {
-                stubOutstandingLoans.Add(
+                bookLoans.Add(
                     new BookLoan
                     {
                         Id = $"test-book-loan-id-{i}",
                         MemberId = memberId,
                         Isbn = $"isbn-{i}",
                         CopyId = $"copy-id-for-book-{i}",
-                        DueDate = new DateTime(2021, 1, 1, 0, 0, 0),
+                        DueDate = dueDate,
+                        // Note: all _outstanding_ BookLoans would have WasReturned set to false
                         WasReturned = false
                     });
             }
-            mockBookLoanRepository.GetOutstandingBookLoansForMemberAsync(memberId)
-                .Returns(stubOutstandingLoans);
+            return bookLoans;
         }
     }
 }
