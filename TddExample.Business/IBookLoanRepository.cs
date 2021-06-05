@@ -7,5 +7,6 @@ namespace TddExample.Business
     {
         Task<IEnumerable<BookLoan>> GetOutstandingBookLoansForMemberAsync(string memberId);
         Task<IEnumerable<string>> GetAvailableCopyIdsAsync(string isbn);
+        Task<bool> TryCreateBookLoanAsync(BookLoan bookLoan);
     }
 }

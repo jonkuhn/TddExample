@@ -7,6 +7,7 @@ namespace TddExample.Business
     public class BookLibrary
     {
         public const int MaxOutstandingLoans = 10;
+        public static TimeSpan LoanDuration => TimeSpan.FromDays(14);
 
         private IBookLoanRepository _bookLoanRepository;
 
@@ -35,6 +36,16 @@ namespace TddExample.Business
             {
                 throw new NoCopiesAvailableException();
             }
+
+            await _bookLoanRepository.TryCreateBookLoanAsync(
+                new BookLoan
+                {
+                    MemberId = memberId,
+                    Isbn = isbn,
+                    CopyId = availableCopies.First(),
+                    DueDate = DateTime.UtcNow.Date + LoanDuration,
+                    WasReturned = false
+                });
         }
     }
 }
