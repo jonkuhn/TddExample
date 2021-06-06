@@ -162,6 +162,27 @@ namespace TddExample.Business.Tests
                 await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut));
         }
 
+        [Test]
+        public void TestCheckoutBookAsync_Given3CopiesAndTryCreateBookLoanReturnsFalseFalseFalse_ThrowsNoCopiesAvailableException()
+        {
+            const string memberId = "member-1";
+            const string availableCopyId1 = "available-copy-id-1";
+            const string availableCopyId2 = "available-copy-id-2";
+            const string availableCopyId3 = "available-copy-id-3";
+            const string isbnOfBookToCheckOut = "test-isbn";
+
+            var bookLoanRepository = Substitute.For<IBookLoanRepository>();
+            bookLoanRepository.GetAvailableCopyIdsAsync(Arg.Any<string>())
+                .Returns(new[] { availableCopyId1, availableCopyId2, availableCopyId3 });
+            bookLoanRepository.TryCreateBookLoanAsync(Arg.Any<BookLoan>())
+                .Returns(false, false, false);
+
+            var bookLibrary = new BookLibrary(bookLoanRepository);
+
+            Assert.ThrowsAsync<NoCopiesAvailableException>(async () =>
+                await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut));
+        }
+
         private static void SetupOutstandingBookLoansForMember(
             IBookLoanRepository mockBookLoanRepository,
             string memberId,
