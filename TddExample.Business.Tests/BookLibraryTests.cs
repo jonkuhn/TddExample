@@ -19,7 +19,6 @@ namespace TddExample.Business.Tests
         public void TestCheckoutBookAsync_GivenMemberOverBookLimit_ThrowsTooManyCheckedOutBooksException(
             string memberId, int outstandingBookLoanCount)
         {
-            const string isbnOfBookToCheckOut = "test-isbn";
             var futureDueDate = DateTime.UtcNow + TimeSpan.FromDays(1);
 
             var bookLoanRepository = Substitute.For<IBookLoanRepository>();
@@ -31,7 +30,7 @@ namespace TddExample.Business.Tests
             var bookLibrary = new BookLibrary(bookLoanRepository);
 
             Assert.ThrowsAsync<TooManyCheckedOutBooksException>(async () =>
-                await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut));
+                await bookLibrary.CheckoutBookAsync(memberId, "test-isbn"));
         }
 
         [TestCase("member1", BookLibrary.MaxOutstandingLoans - 1)]
@@ -39,7 +38,6 @@ namespace TddExample.Business.Tests
         public void TestCheckoutBookAsync_GivenMemberNotOverBookLimit_Succeeds(
             string memberId, int outstandingBookLoanCount)
         {
-            const string isbnOfBookToCheckOut = "test-isbn";
             var futureDueDate = DateTime.UtcNow + TimeSpan.FromDays(1);
 
             var bookLoanRepository = Substitute.For<IBookLoanRepository>();
@@ -55,14 +53,13 @@ namespace TddExample.Business.Tests
             var bookLibrary = new BookLibrary(bookLoanRepository);
 
             Assert.DoesNotThrowAsync(async () =>
-                await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut));
+                await bookLibrary.CheckoutBookAsync(memberId, "test-isbn"));
         }
 
         [Test]
         public void TestCheckoutBookAsync_GivenPastDueBookLoan_ThrowsBooksPastDueException()
         {
-            const string memberId = "member-1";
-            const string isbnOfBookToCheckOut = "test-isbn";
+            const string memberId = "member-id-1";
             var pastDueDate = DateTime.UtcNow - TimeSpan.FromDays(1);
             var futureDueDate = DateTime.UtcNow + TimeSpan.FromDays(1);
 
@@ -76,15 +73,12 @@ namespace TddExample.Business.Tests
             var bookLibrary = new BookLibrary(bookLoanRepository);
 
             Assert.ThrowsAsync<PastDueBooksException>(async () =>
-                await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut));
+                await bookLibrary.CheckoutBookAsync(memberId, "test-isbn"));
         }
 
         [Test]
         public void TestCheckoutBookAsync_GivenNoCopiesAvailable_ThrowsNoCopiesAvailableException()
         {
-            const string memberId = "member-1";
-            const string isbnOfBookToCheckOut = "test-isbn";
-
             var bookLoanRepository = Substitute.For<IBookLoanRepository>();
             bookLoanRepository.GetAvailableCopyIdsAsync(Arg.Any<string>())
                 .Returns(Enumerable.Empty<string>());
@@ -92,13 +86,13 @@ namespace TddExample.Business.Tests
             var bookLibrary = new BookLibrary(bookLoanRepository);
 
             Assert.ThrowsAsync<NoCopiesAvailableException>(async () =>
-                await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut));
+                await bookLibrary.CheckoutBookAsync("member-id", "test-isbn"));
         }
 
         [Test]
         public async Task TestCheckoutBookAsync_GivenCopyAvailable_CallsTryCreateBookLoanWithCorrectArgs()
         {
-            const string memberId = "member-1";
+            const string memberId = "member-id-1";
             const string availableCopyId = "available-copy-id";
             const string isbnOfBookToCheckOut = "test-isbn";
 
@@ -125,62 +119,46 @@ namespace TddExample.Business.Tests
         [Test]
         public void TestCheckoutBookAsync_GivenTryCreateBookLoanReturnsFalse_ThrowsNoCopiesAvailableException()
         {
-            const string memberId = "member-1";
-            const string availableCopyId = "available-copy-id";
-            const string isbnOfBookToCheckOut = "test-isbn";
-
             var bookLoanRepository = Substitute.For<IBookLoanRepository>();
             bookLoanRepository.GetAvailableCopyIdsAsync(Arg.Any<string>())
-                .Returns(new[] { availableCopyId });
+                .Returns(new[] { "available-copy-id" });
             bookLoanRepository.TryCreateBookLoanAsync(Arg.Any<BookLoan>())
                 .Returns(false);
 
             var bookLibrary = new BookLibrary(bookLoanRepository);
 
             Assert.ThrowsAsync<NoCopiesAvailableException>(async () =>
-                await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut));
+                await bookLibrary.CheckoutBookAsync("member-id", "test-isbn"));
         }
 
         [Test]
         public void TestCheckoutBookAsync_Given3CopiesAndTryCreateBookLoanReturnsFalseFalseTrue_DoesNotThrow()
         {
-            const string memberId = "member-1";
-            const string availableCopyId1 = "available-copy-id-1";
-            const string availableCopyId2 = "available-copy-id-2";
-            const string availableCopyId3 = "available-copy-id-3";
-            const string isbnOfBookToCheckOut = "test-isbn";
-
             var bookLoanRepository = Substitute.For<IBookLoanRepository>();
             bookLoanRepository.GetAvailableCopyIdsAsync(Arg.Any<string>())
-                .Returns(new[] { availableCopyId1, availableCopyId2, availableCopyId3 });
+                .Returns(new[] { "avail-copy-id-1", "avail-copy-id-2", "avail-copy-id-3" });
             bookLoanRepository.TryCreateBookLoanAsync(Arg.Any<BookLoan>())
                 .Returns(false, false, true);
 
             var bookLibrary = new BookLibrary(bookLoanRepository);
 
             Assert.DoesNotThrowAsync(async () =>
-                await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut));
+                await bookLibrary.CheckoutBookAsync("member-id", "test-isbn"));
         }
 
         [Test]
         public void TestCheckoutBookAsync_Given3CopiesAndTryCreateBookLoanReturnsFalseFalseFalse_ThrowsNoCopiesAvailableException()
         {
-            const string memberId = "member-1";
-            const string availableCopyId1 = "available-copy-id-1";
-            const string availableCopyId2 = "available-copy-id-2";
-            const string availableCopyId3 = "available-copy-id-3";
-            const string isbnOfBookToCheckOut = "test-isbn";
-
             var bookLoanRepository = Substitute.For<IBookLoanRepository>();
             bookLoanRepository.GetAvailableCopyIdsAsync(Arg.Any<string>())
-                .Returns(new[] { availableCopyId1, availableCopyId2, availableCopyId3 });
+                .Returns(new[] { "avail-copy-id-1", "avail-copy-id-2", "avail-copy-id-3" });
             bookLoanRepository.TryCreateBookLoanAsync(Arg.Any<BookLoan>())
                 .Returns(false, false, false);
 
             var bookLibrary = new BookLibrary(bookLoanRepository);
 
             Assert.ThrowsAsync<NoCopiesAvailableException>(async () =>
-                await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut));
+                await bookLibrary.CheckoutBookAsync("member-id", "test-isbn"));
         }
 
         private static void SetupOutstandingBookLoansForMember(
