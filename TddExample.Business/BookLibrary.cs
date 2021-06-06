@@ -37,15 +37,19 @@ namespace TddExample.Business
                 throw new NoCopiesAvailableException();
             }
 
-            var checkoutSuccessful = await _bookLoanRepository.TryCreateBookLoanAsync(
-                new BookLoan
-                {
-                    MemberId = memberId,
-                    Isbn = isbn,
-                    CopyId = availableCopies.First(),
-                    DueDate = DateTime.UtcNow.Date + LoanDuration,
-                    WasReturned = false
-                });
+            bool checkoutSuccessful = false;
+            while (!checkoutSuccessful)
+            {
+                checkoutSuccessful = await _bookLoanRepository.TryCreateBookLoanAsync(
+                    new BookLoan
+                    {
+                        MemberId = memberId,
+                        Isbn = isbn,
+                        CopyId = availableCopies.First(),
+                        DueDate = DateTime.UtcNow.Date + LoanDuration,
+                        WasReturned = false
+                    });
+            }
 
             if (!checkoutSuccessful)
             {
