@@ -38,7 +38,7 @@ namespace TddExample.Business
             }
 
             bool checkoutSuccessful = false;
-            while (!checkoutSuccessful)
+            foreach (var copy in availableCopies)
             {
                 checkoutSuccessful = await _bookLoanRepository.TryCreateBookLoanAsync(
                     new BookLoan
