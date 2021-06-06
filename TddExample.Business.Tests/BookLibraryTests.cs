@@ -9,11 +9,6 @@ namespace TddExample.Business.Tests
 {
     public class BookLibraryTests
     {
-        [SetUp]
-        public void Setup()
-        {
-        }
-
         [TestCase("memberId1", BookLibrary.MaxOutstandingLoans)]
         [TestCase("memberId2", BookLibrary.MaxOutstandingLoans)]
         public void TestCheckoutBookAsync_GivenMemberOverBookLimit_ThrowsTooManyCheckedOutBooksException(

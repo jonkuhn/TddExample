@@ -31,6 +31,11 @@ namespace TddExample.Business
                 throw new PastDueBooksException();
             }
 
+            await CreateBookLoanForFirstAvailableCopy(memberId, isbn);
+        }
+
+        private async Task CreateBookLoanForFirstAvailableCopy(string memberId, string isbn)
+        {
             var availableCopyIds = await _bookLoanRepository.GetAvailableCopyIdsAsync(isbn);
             if (!availableCopyIds.Any())
             {
