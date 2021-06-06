@@ -31,21 +31,21 @@ namespace TddExample.Business
                 throw new PastDueBooksException();
             }
 
-            var availableCopies = await _bookLoanRepository.GetAvailableCopyIdsAsync(isbn);
-            if (!availableCopies.Any())
+            var availableCopyIds = await _bookLoanRepository.GetAvailableCopyIdsAsync(isbn);
+            if (!availableCopyIds.Any())
             {
                 throw new NoCopiesAvailableException();
             }
 
             bool checkoutSuccessful = false;
-            foreach (var copy in availableCopies)
+            foreach (var copyId in availableCopyIds)
             {
                 checkoutSuccessful = await _bookLoanRepository.TryCreateBookLoanAsync(
                     new BookLoan
                     {
                         MemberId = memberId,
                         Isbn = isbn,
-                        CopyId = availableCopies.First(),
+                        CopyId = copyId,
                         DueDate = DateTime.UtcNow.Date + LoanDuration,
                         WasReturned = false
                     });
