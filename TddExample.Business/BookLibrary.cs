@@ -37,7 +37,7 @@ namespace TddExample.Business
                 throw new NoCopiesAvailableException();
             }
 
-            await _bookLoanRepository.TryCreateBookLoanAsync(
+            var checkoutSuccessful = await _bookLoanRepository.TryCreateBookLoanAsync(
                 new BookLoan
                 {
                     MemberId = memberId,
@@ -46,6 +46,11 @@ namespace TddExample.Business
                     DueDate = DateTime.UtcNow.Date + LoanDuration,
                     WasReturned = false
                 });
+
+            if (!checkoutSuccessful)
+            {
+                throw new NoCopiesAvailableException();
+            }
         }
     }
 }
