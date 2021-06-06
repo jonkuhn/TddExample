@@ -49,6 +49,10 @@ namespace TddExample.Business
                         DueDate = DateTime.UtcNow.Date + LoanDuration,
                         WasReturned = false
                     });
+                if (checkoutSuccessful)
+                {
+                    break;
+                }
             }
 
             if (!checkoutSuccessful)
