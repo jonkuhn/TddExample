@@ -49,6 +49,8 @@ namespace TddExample.Business.Tests
                 CreateOutstandingBookLoans(memberId, outstandingBookLoanCount, futureDueDate));
             bookLoanRepository.GetAvailableCopyIdsAsync(Arg.Any<string>())
                 .Returns(new[] { "available-copy-id" });
+            bookLoanRepository.TryCreateBookLoanAsync(Arg.Any<BookLoan>())
+                .Returns(true);
 
             var bookLibrary = new BookLibrary(bookLoanRepository);
 
@@ -103,6 +105,8 @@ namespace TddExample.Business.Tests
             var bookLoanRepository = Substitute.For<IBookLoanRepository>();
             bookLoanRepository.GetAvailableCopyIdsAsync(Arg.Any<string>())
                 .Returns(new[] { availableCopyId });
+            bookLoanRepository.TryCreateBookLoanAsync(Arg.Any<BookLoan>())
+                .Returns(true);
 
             var bookLibrary = new BookLibrary(bookLoanRepository);
             await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut);
@@ -116,6 +120,25 @@ namespace TddExample.Business.Tests
                 WasReturned = false
             };
             await bookLoanRepository.Received(1).TryCreateBookLoanAsync(expectedNewBookLoan);
+        }
+
+        [Test]
+        public void TestCheckoutBookAsync_GivenTryCreateBookLoanReturnsFalse_ThrowsNoCopiesAvailableException()
+        {
+            const string memberId = "member-1";
+            const string availableCopyId = "available-copy-id";
+            const string isbnOfBookToCheckOut = "test-isbn";
+
+            var bookLoanRepository = Substitute.For<IBookLoanRepository>();
+            bookLoanRepository.GetAvailableCopyIdsAsync(Arg.Any<string>())
+                .Returns(new[] { availableCopyId });
+            bookLoanRepository.TryCreateBookLoanAsync(Arg.Any<BookLoan>())
+                .Returns(false);
+
+            var bookLibrary = new BookLibrary(bookLoanRepository);
+
+            Assert.ThrowsAsync<NoCopiesAvailableException>(async () =>
+                await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut));
         }
 
         private static void SetupOutstandingBookLoansForMember(
