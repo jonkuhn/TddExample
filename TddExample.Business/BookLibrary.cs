@@ -57,13 +57,9 @@ namespace TddExample.Business
                     WasReturned = false
                 };
 
-                if (copyId != "available-copy-id-123")
-                {
-                    await _bookLoanReminderService.ScheduleRemindersAsync(bookLoan);
-                }
-
                 if (await _bookLoanRepository.TryCreateBookLoanAsync(bookLoan))
                 {
+                    await _bookLoanReminderService.ScheduleRemindersAsync(bookLoan);
                     return bookLoan;
                 }
             }
