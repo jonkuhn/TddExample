@@ -35,10 +35,12 @@ namespace TddExample.Business
                 throw new PastDueBooksException();
             }
 
-            await CreateBookLoanForFirstAvailableCopy(memberId, isbn);
+            var bookLoan = await CreateBookLoanForFirstAvailableCopy(memberId, isbn);
+
+            await _bookLoanReminderService.ScheduleRemindersAsync(bookLoan);
         }
 
-        private async Task CreateBookLoanForFirstAvailableCopy(string memberId, string isbn)
+        private async Task<BookLoan> CreateBookLoanForFirstAvailableCopy(string memberId, string isbn)
         {
             var availableCopyIds = await _bookLoanRepository.GetAvailableCopyIdsAsync(isbn);
             if (!availableCopyIds.Any())
@@ -46,28 +48,24 @@ namespace TddExample.Business
                 throw new NoCopiesAvailableException();
             }
 
-            bool checkoutSuccessful = false;
             foreach (var copyId in availableCopyIds)
             {
-                checkoutSuccessful = await _bookLoanRepository.TryCreateBookLoanAsync(
-                    new BookLoan
-                    {
-                        MemberId = memberId,
-                        Isbn = isbn,
-                        CopyId = copyId,
-                        DueDate = DateTime.UtcNow.Date + LoanDuration,
-                        WasReturned = false
-                    });
-                if (checkoutSuccessful)
+                var bookLoan = new BookLoan
                 {
-                    break;
+                    MemberId = memberId,
+                    Isbn = isbn,
+                    CopyId = copyId,
+                    DueDate = DateTime.UtcNow.Date + LoanDuration,
+                    WasReturned = false
+                };
+
+                if (await _bookLoanRepository.TryCreateBookLoanAsync(bookLoan))
+                {
+                    return bookLoan;
                 }
             }
 
-            if (!checkoutSuccessful)
-            {
-                throw new NoCopiesAvailableException();
-            }
+            throw new NoCopiesAvailableException();
         }
     }
 }
