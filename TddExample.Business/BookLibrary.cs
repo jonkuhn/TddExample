@@ -9,11 +9,15 @@ namespace TddExample.Business
         public const int MaxOutstandingLoans = 10;
         public static TimeSpan LoanDuration => TimeSpan.FromDays(14);
 
-        private IBookLoanRepository _bookLoanRepository;
+        private readonly IBookLoanRepository _bookLoanRepository;
+        private readonly IBookLoanReminderService _bookLoanReminderService;
 
-        public BookLibrary(IBookLoanRepository bookLoanRepository)
+        public BookLibrary(
+            IBookLoanRepository bookLoanRepository,
+            IBookLoanReminderService bookDueReminderService)
         {
             _bookLoanRepository = bookLoanRepository;
+            _bookLoanReminderService = bookDueReminderService;
         }
         public async Task CheckoutBookAsync(string memberId, string isbn)
         {

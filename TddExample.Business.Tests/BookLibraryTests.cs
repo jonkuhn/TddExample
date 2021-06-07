@@ -22,7 +22,8 @@ namespace TddExample.Business.Tests
                 memberId,
                 CreateOutstandingBookLoans(memberId, outstandingBookLoanCount, futureDueDate));
 
-            var bookLibrary = new BookLibrary(bookLoanRepository);
+            var bookLibrary = new BookLibrary(
+                bookLoanRepository, Substitute.For<IBookLoanReminderService>());
 
             Assert.ThrowsAsync<TooManyCheckedOutBooksException>(async () =>
                 await bookLibrary.CheckoutBookAsync(memberId, "test-isbn"));
@@ -45,7 +46,8 @@ namespace TddExample.Business.Tests
             bookLoanRepository.TryCreateBookLoanAsync(Arg.Any<BookLoan>())
                 .Returns(true);
 
-            var bookLibrary = new BookLibrary(bookLoanRepository);
+            var bookLibrary = new BookLibrary(
+                bookLoanRepository, Substitute.For<IBookLoanReminderService>());
 
             Assert.DoesNotThrowAsync(async () =>
                 await bookLibrary.CheckoutBookAsync(memberId, "test-isbn"));
@@ -65,7 +67,8 @@ namespace TddExample.Business.Tests
                 CreateOutstandingBookLoans(memberId, 4, futureDueDate)
                 .Concat(CreateOutstandingBookLoans(memberId, 1, pastDueDate)));
 
-            var bookLibrary = new BookLibrary(bookLoanRepository);
+            var bookLibrary = new BookLibrary(
+                bookLoanRepository, Substitute.For<IBookLoanReminderService>());
 
             Assert.ThrowsAsync<PastDueBooksException>(async () =>
                 await bookLibrary.CheckoutBookAsync(memberId, "test-isbn"));
@@ -78,7 +81,8 @@ namespace TddExample.Business.Tests
             bookLoanRepository.GetAvailableCopyIdsAsync(Arg.Any<string>())
                 .Returns(Enumerable.Empty<string>());
 
-            var bookLibrary = new BookLibrary(bookLoanRepository);
+            var bookLibrary = new BookLibrary(
+                bookLoanRepository, Substitute.For<IBookLoanReminderService>());
 
             Assert.ThrowsAsync<NoCopiesAvailableException>(async () =>
                 await bookLibrary.CheckoutBookAsync("member-id", "test-isbn"));
@@ -97,7 +101,8 @@ namespace TddExample.Business.Tests
             bookLoanRepository.TryCreateBookLoanAsync(Arg.Any<BookLoan>())
                 .Returns(true);
 
-            var bookLibrary = new BookLibrary(bookLoanRepository);
+            var bookLibrary = new BookLibrary(
+                bookLoanRepository, Substitute.For<IBookLoanReminderService>());
             await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut);
 
             var expectedNewBookLoan = new BookLoan
@@ -120,7 +125,8 @@ namespace TddExample.Business.Tests
             bookLoanRepository.TryCreateBookLoanAsync(Arg.Any<BookLoan>())
                 .Returns(false);
 
-            var bookLibrary = new BookLibrary(bookLoanRepository);
+            var bookLibrary = new BookLibrary(
+                bookLoanRepository, Substitute.For<IBookLoanReminderService>());
 
             Assert.ThrowsAsync<NoCopiesAvailableException>(async () =>
                 await bookLibrary.CheckoutBookAsync("member-id", "test-isbn"));
@@ -135,7 +141,8 @@ namespace TddExample.Business.Tests
             bookLoanRepository.TryCreateBookLoanAsync(Arg.Any<BookLoan>())
                 .Returns(false, false, true);
 
-            var bookLibrary = new BookLibrary(bookLoanRepository);
+            var bookLibrary = new BookLibrary(
+                bookLoanRepository, Substitute.For<IBookLoanReminderService>());
 
             Assert.DoesNotThrowAsync(async () =>
                 await bookLibrary.CheckoutBookAsync("member-id", "test-isbn"));
@@ -150,7 +157,8 @@ namespace TddExample.Business.Tests
             bookLoanRepository.TryCreateBookLoanAsync(Arg.Any<BookLoan>())
                 .Returns(false, false, false);
 
-            var bookLibrary = new BookLibrary(bookLoanRepository);
+            var bookLibrary = new BookLibrary(
+                bookLoanRepository, Substitute.For<IBookLoanReminderService>());
 
             Assert.ThrowsAsync<NoCopiesAvailableException>(async () =>
                 await bookLibrary.CheckoutBookAsync("member-id", "test-isbn"));
@@ -169,7 +177,8 @@ namespace TddExample.Business.Tests
             bookLoanRepository.TryCreateBookLoanAsync(Arg.Any<BookLoan>())
                 .Returns(false, false, true);
 
-            var bookLibrary = new BookLibrary(bookLoanRepository);
+            var bookLibrary = new BookLibrary(
+                bookLoanRepository, Substitute.For<IBookLoanReminderService>());
 
             await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut);
 
@@ -200,10 +209,41 @@ namespace TddExample.Business.Tests
             bookLoanRepository.TryCreateBookLoanAsync(Arg.Any<BookLoan>())
                 .Returns(true);
 
-            var bookLibrary = new BookLibrary(bookLoanRepository);
+            var bookLibrary = new BookLibrary(
+                bookLoanRepository, Substitute.For<IBookLoanReminderService>());
             await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut);
 
             await bookLoanRepository.Received(1).TryCreateBookLoanAsync(Arg.Any<BookLoan>());
+        }
+
+        [Test]
+        public async Task TestCheckoutBookAsync_GivenBookIsCheckedOut_CallsScheduleRemindersForBookLoan()
+        {
+            const string memberId = "member-id";
+            const string isbnOfBookToCheckOut = "test-isbn";
+            const string copyId = "available-copy-id";
+
+            var futureDueDate = DateTime.UtcNow + TimeSpan.FromDays(1);
+
+            var bookLoanRepository = Substitute.For<IBookLoanRepository>();
+            var reminderService = Substitute.For<IBookLoanReminderService>();
+            bookLoanRepository.GetAvailableCopyIdsAsync(Arg.Any<string>())
+                .Returns(new[] { copyId });
+            bookLoanRepository.TryCreateBookLoanAsync(Arg.Any<BookLoan>())
+                .Returns(true);
+
+            var bookLibrary = new BookLibrary(bookLoanRepository, reminderService);
+            await bookLibrary.CheckoutBookAsync(memberId, isbnOfBookToCheckOut);
+
+            await reminderService.Received(1).ScheduleRemindersAsync(
+                new BookLoan
+                {
+                    MemberId = memberId,
+                    Isbn = isbnOfBookToCheckOut,
+                    CopyId = copyId,
+                    DueDate = DateTime.UtcNow.Date + BookLibrary.LoanDuration,
+                    WasReturned = false
+                });
         }
 
         private static void SetupOutstandingBookLoansForMember(
