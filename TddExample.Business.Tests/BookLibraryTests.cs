@@ -217,7 +217,7 @@ namespace TddExample.Business.Tests
         }
 
         [Test]
-        public async Task TestCheckoutBookAsync_GivenBookIsCheckedOut_CallsScheduleRemindersForBookLoan()
+        public async Task TestCheckoutBookAsync_GivenBookIsCheckedOut_CallsScheduleRemindersForBookLoanWithExpectedArgs()
         {
             const string memberId = "member-id";
             const string isbnOfBookToCheckOut = "test-isbn";
@@ -243,6 +243,28 @@ namespace TddExample.Business.Tests
                     CopyId = copyId,
                     DueDate = DateTime.UtcNow.Date + BookLibrary.LoanDuration,
                     WasReturned = false
+                });
+        }
+
+        [Test]
+        public async Task TestCheckoutBookAsync_GivenBookIsCheckedOut_CallsScheduleRemindersForBookLoanAfterTryCreate()
+        {
+            var futureDueDate = DateTime.UtcNow + TimeSpan.FromDays(1);
+
+            var bookLoanRepository = Substitute.For<IBookLoanRepository>();
+            var reminderService = Substitute.For<IBookLoanReminderService>();
+            bookLoanRepository.GetAvailableCopyIdsAsync(Arg.Any<string>())
+                .Returns(new[] { "available-copy-id" });
+            bookLoanRepository.TryCreateBookLoanAsync(Arg.Any<BookLoan>())
+                .Returns(true);
+
+            var bookLibrary = new BookLibrary(bookLoanRepository, reminderService);
+            await bookLibrary.CheckoutBookAsync("member-id", "test-isbn");
+
+            Received.InOrder(async () =>
+                {
+                    await bookLoanRepository.Received(1).TryCreateBookLoanAsync(Arg.Any<BookLoan>());
+                    await reminderService.Received(1).ScheduleRemindersAsync(Arg.Any<BookLoan>());
                 });
         }
 
