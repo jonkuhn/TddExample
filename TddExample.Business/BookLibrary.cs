@@ -36,8 +36,6 @@ namespace TddExample.Business
             }
 
             var bookLoan = await CreateBookLoanForFirstAvailableCopy(memberId, isbn);
-
-            await _bookLoanReminderService.ScheduleRemindersAsync(bookLoan);
         }
 
         private async Task<BookLoan> CreateBookLoanForFirstAvailableCopy(string memberId, string isbn)
@@ -58,6 +56,8 @@ namespace TddExample.Business
                     DueDate = DateTime.UtcNow.Date + LoanDuration,
                     WasReturned = false
                 };
+
+                await _bookLoanReminderService.ScheduleRemindersAsync(bookLoan);
 
                 if (await _bookLoanRepository.TryCreateBookLoanAsync(bookLoan))
                 {

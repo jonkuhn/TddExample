@@ -246,6 +246,30 @@ namespace TddExample.Business.Tests
                 });
         }
 
+        [Test]
+        public async Task TestCheckoutBookAsync_GivenTryCreateBookLoanReturnsFalse_ScheduleRemindersAsyncIsNotCalled()
+        {
+            var bookLoanRepository = Substitute.For<IBookLoanRepository>();
+            bookLoanRepository.GetAvailableCopyIdsAsync(Arg.Any<string>())
+                .Returns(new[] { "available-copy-id-123" });
+            bookLoanRepository.TryCreateBookLoanAsync(Arg.Any<BookLoan>())
+                .Returns(false);
+
+            var reminderService = Substitute.For<IBookLoanReminderService>();
+            var bookLibrary = new BookLibrary(bookLoanRepository, reminderService);
+
+            try
+            {
+                await bookLibrary.CheckoutBookAsync("member-id", "test-isbn");
+            }
+            catch (Exception)
+            {
+                // an exception will be thrown, but that is not the focus of this test
+            }
+
+            await reminderService.DidNotReceive().ScheduleRemindersAsync(Arg.Any<BookLoan>());
+        }
+
         private static void SetupOutstandingBookLoansForMember(
             IBookLoanRepository mockBookLoanRepository,
             string memberId,
